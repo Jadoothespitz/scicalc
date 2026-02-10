@@ -185,8 +185,8 @@
   .entry {
     display: flex;
     padding: 2px 16px 2px 0;
-    min-height: 24px;
-    line-height: 24px;
+    min-height: 30px;
+    line-height: 30px;
   }
   .entry .line-num {
     width: 48px;
@@ -194,18 +194,18 @@
     text-align: right;
     padding-right: 12px;
     color: var(--line-num);
-    font-size: 12px;
+    font-size: 14px;
     user-select: none;
-    line-height: 24px;
+    line-height: 30px;
   }
   .entry .expr {
     color: var(--text);
-    font-size: 14px;
+    font-size: 18px;
     word-break: break-all;
   }
   .entry .result-line {
     color: var(--result);
-    font-size: 14px;
+    font-size: 18px;
     padding-left: 12px;
     word-break: break-all;
   }
@@ -226,9 +226,9 @@
     text-align: right;
     padding-right: 12px;
     color: var(--accent);
-    font-size: 12px;
+    font-size: 14px;
     user-select: none;
-    line-height: 28px;
+    line-height: 32px;
   }
   #expr-input {
     flex: 1;
@@ -237,8 +237,8 @@
     outline: none;
     color: var(--text);
     font-family: inherit;
-    font-size: 14px;
-    line-height: 28px;
+    font-size: 18px;
+    line-height: 32px;
     caret-color: var(--accent);
   }
   #expr-input::placeholder {
@@ -348,7 +348,7 @@
 
   <div id="input-row">
     <span class="line-num" id="current-line-num">1</span>
-    <input id="expr-input" type="text" placeholder="Type an expression..." autocomplete="off" spellcheck="false" autofocus>
+    <input id="expr-input" type="text" inputmode="none" placeholder="Type an expression..." autocomplete="off" spellcheck="false" autofocus>
   </div>
 
   <div class="separator"></div>
