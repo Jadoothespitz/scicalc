@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scicalc-v1';
+const CACHE_NAME = 'scicalc-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -26,19 +26,15 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Fetch: serve from cache first, fall back to network
+// Fetch: network first, fall back to cache (so updates arrive immediately)
 self.addEventListener('fetch', (e) => {
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(response => {
-        // Cache new successful requests
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        }
-        return response;
-      });
-    }).catch(() => caches.match('./index.html'))
+    fetch(e.request).then(response => {
+      if (response.ok) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+      }
+      return response;
+    }).catch(() => caches.match(e.request))
   );
 });
