@@ -275,8 +275,8 @@
     border: 1px solid var(--border);
     color: var(--btn-text);
     font-family: inherit;
-    font-size: 13px;
-    padding: 8px 2px;
+    font-size: 15px;
+    padding: 10px 2px;
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.12s, transform 0.08s;
@@ -323,7 +323,7 @@
       height: 100vh;
       border-radius: 0;
     }
-    .btn-row button { font-size: 12px; padding: 9px 1px; }
+    .btn-row button { font-size: 14px; padding: 10px 1px; }
   }
 </style>
 </head>
@@ -547,6 +547,7 @@ let history  = [];
 let ans      = 0;
 let useDeg   = true;
 let currentTheme = 'solarized-light';
+let currentExpr  = '';  // source of truth for the expression
 
 // ── DOM refs ───────────────────────────────────
 const notepad       = document.getElementById('notepad');
@@ -783,9 +784,14 @@ function formatResult(n) {
   return s;
 }
 
+// ── Sync display ───────────────────────────────
+function syncDisplay() {
+  input.value = currentExpr;
+}
+
 // ── Core actions ───────────────────────────────
 function evaluate() {
-  const raw = input.value.trim();
+  const raw = currentExpr.trim();
   if (!raw) return;
 
   let result, isError = false;
@@ -801,37 +807,25 @@ function evaluate() {
   history.push({ expr: raw, result, isError });
   saveHistory();
   renderHistory();
-  input.value = '';
-  input.focus();
+  currentExpr = '';
+  syncDisplay();
 }
 
 function ins(text) {
-  const start = input.selectionStart;
-  const end   = input.selectionEnd;
-  const val   = input.value;
-  input.value = val.substring(0, start) + text + val.substring(end);
-  const cursor = start + text.length;
-  input.setSelectionRange(cursor, cursor);
-  input.focus();
+  currentExpr += text;
+  syncDisplay();
 }
 
 function backspace() {
-  const start = input.selectionStart;
-  const end   = input.selectionEnd;
-  const val   = input.value;
-  if (start !== end) {
-    input.value = val.substring(0, start) + val.substring(end);
-    input.setSelectionRange(start, start);
-  } else if (start > 0) {
-    input.value = val.substring(0, start - 1) + val.substring(start);
-    input.setSelectionRange(start - 1, start - 1);
+  if (currentExpr.length > 0) {
+    currentExpr = currentExpr.slice(0, -1);
+    syncDisplay();
   }
-  input.focus();
 }
 
 function clearInput() {
-  input.value = '';
-  input.focus();
+  currentExpr = '';
+  syncDisplay();
 }
 
 function clearAll() {
@@ -841,8 +835,8 @@ function clearAll() {
     ans = 0;
     saveHistory();
     renderHistory();
-    input.value = '';
-    input.focus();
+    currentExpr = '';
+    syncDisplay();
   }
 }
 
@@ -854,17 +848,21 @@ modeBtn.addEventListener('click', () => {
   updateStatus();
 });
 
-// ── Keyboard handling ──────────────────────────
+// ── Keyboard handling (desktop) ────────────────
 input.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     evaluate();
   }
-  if (e.key === 'ArrowUp' && history.length && input.value === '') {
+  if (e.key === 'ArrowUp' && history.length && currentExpr === '') {
     e.preventDefault();
-    input.value = history[history.length - 1].expr;
-    setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
+    currentExpr = history[history.length - 1].expr;
+    syncDisplay();
   }
+});
+// Sync variable if user types directly (desktop)
+input.addEventListener('input', () => {
+  currentExpr = input.value;
 });
 
 notepad.addEventListener('click', () => input.focus());
