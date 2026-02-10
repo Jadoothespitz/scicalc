@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#268bd2"/>
+  <text x="256" y="200" text-anchor="middle" font-family="Georgia, serif" font-size="160" font-weight="700" fill="#fdf6e3">Sci</text>
+  <rect x="100" y="240" width="312" height="3" rx="1.5" fill="#fdf6e3" opacity="0.4"/>
+  <text x="256" y="390" text-anchor="middle" font-family="Consolas, monospace" font-size="90" fill="#fdf6e3" opacity="0.92">f(x)=</text>
+</svg>

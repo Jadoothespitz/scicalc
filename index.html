@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SciCalc Notepad</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#268bd2">
+
+<!-- iOS home screen support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SciCalc">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+  :root {
+    --bg: #fdf6e3;
+    --surface: #eee8d5;
+    --surface2: #e6dfcc;
+    --border: #d3cbb7;
+    --text: #475b62;
+    --text-dim: #93a1a1;
+    --accent: #268bd2;
+    --accent-hover: #1a6fa8;
+    --accent-text: #ffffff;
+    --result: #2a8c82;
+    --error: #dc322f;
+    --line-num: #b0a890;
+    --btn-bg: #eee8d5;
+    --btn-hover: #e6dfcc;
+    --btn-active: #ddd6c1;
+    --btn-text: #475b62;
+    --scrollbar: #d3cbb7;
+    --scrollbar-thumb: #b0a890;
+    --shadow: rgba(0,0,0,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 720px;
+    height: 96vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px var(--shadow);
+    border: 1px solid var(--border);
+    transition: box-shadow 0.3s, border-color 0.3s;
+  }
+
+  /* ── Title bar ───────────────────────── */
+  #titlebar {
+    background: var(--surface);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 8px;
+  }
+  #titlebar h1 {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    margin-right: auto;
+  }
+  .titlebar-btn {
+    background: var(--btn-bg);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .titlebar-btn:hover { background: var(--btn-hover); }
+
+  /* ── Theme picker ────────────────────── */
+  #theme-wrap {
+    position: relative;
+  }
+  #theme-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    width: 232px;
+    z-index: 100;
+    box-shadow: 0 8px 28px var(--shadow);
+  }
+  #theme-panel.open { display: block; }
+  #theme-panel h3 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .theme-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .theme-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: background 0.12s, border-color 0.15s;
+    background: transparent;
+  }
+  .theme-option:hover {
+    background: var(--btn-hover);
+  }
+  .theme-option.active {
+    border-color: var(--accent);
+    background: var(--btn-hover);
+  }
+  .theme-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(128,128,128,0.25);
+    display: flex;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .theme-swatch .sw-left,
+  .theme-swatch .sw-right {
+    width: 50%;
+    height: 100%;
+  }
+  .theme-option .theme-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* ── Notepad area ────────────────────── */
+  #notepad {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 0;
+    background: var(--bg);
+    scroll-behavior: smooth;
+    transition: background 0.3s;
+  }
+  #notepad::-webkit-scrollbar { width: 8px; }
+  #notepad::-webkit-scrollbar-track { background: var(--bg); }
+  #notepad::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+  }
+
+  .entry {
+    display: flex;
+    padding: 2px 16px 2px 0;
+    min-height: 24px;
+    line-height: 24px;
+  }
+  .entry .line-num {
+    width: 48px;
+    min-width: 48px;
+    text-align: right;
+    padding-right: 12px;
+    color: var(--line-num);
+    font-size: 12px;
+    user-select: none;
+    line-height: 24px;
+  }
+  .entry .expr {
+    color: var(--text);
+    font-size: 14px;
+    word-break: break-all;
+  }
+  .entry .result-line {
+    color: var(--result);
+    font-size: 14px;
+    padding-left: 12px;
+    word-break: break-all;
+  }
+  .entry .result-line.error {
+    color: var(--error);
+  }
+
+  /* ── Active input line ───────────────── */
+  #input-row {
+    display: flex;
+    padding: 2px 16px 2px 0;
+    min-height: 28px;
+    align-items: center;
+  }
+  #input-row .line-num {
+    width: 48px;
+    min-width: 48px;
+    text-align: right;
+    padding-right: 12px;
+    color: var(--accent);
+    font-size: 12px;
+    user-select: none;
+    line-height: 28px;
+  }
+  #expr-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 28px;
+    caret-color: var(--accent);
+  }
+  #expr-input::placeholder {
+    color: var(--text-dim);
+    opacity: 0.5;
+  }
+
+  /* ── Separator ───────────────────────── */
+  .separator {
+    height: 1px;
+    background: var(--border);
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  /* ── Button panel ────────────────────── */
+  #btn-panel {
+    background: var(--surface);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    transition: background 0.3s;
+  }
+  .btn-row {
+    display: flex;
+    gap: 5px;
+  }
+  .btn-row button {
+    flex: 1;
+    background: var(--btn-bg);
+    border: 1px solid var(--border);
+    color: var(--btn-text);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s, transform 0.08s;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .btn-row button:hover { background: var(--btn-hover); }
+  .btn-row button:active {
+    background: var(--btn-active);
+    transform: scale(0.96);
+  }
+  .btn-row button.accent {
+    background: var(--accent);
+    color: var(--accent-text);
+    font-weight: 700;
+    border-color: var(--accent);
+  }
+  .btn-row button.accent:hover { background: var(--accent-hover); }
+  .btn-row button.danger {
+    color: var(--error);
+  }
+  .btn-row button.special {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ── Status bar ──────────────────────── */
+  #statusbar {
+    background: var(--surface2);
+    padding: 4px 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    transition: background 0.3s;
+  }
+
+  /* ── Responsive ──────────────────────── */
+  @media (max-width: 740px) {
+    #app {
+      max-width: 100%;
+      height: 100vh;
+      border-radius: 0;
+    }
+    .btn-row button { font-size: 12px; padding: 9px 1px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="titlebar">
+    <h1>SciCalc Notepad</h1>
+    <div id="theme-wrap">
+      <button class="titlebar-btn" id="theme-toggle" title="Change theme">Theme</button>
+      <div id="theme-panel">
+        <h3>Choose Theme</h3>
+        <div class="theme-list" id="theme-list">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </div>
+    <button class="titlebar-btn" id="mode-toggle" title="Toggle angle mode">DEG</button>
+  </div>
+
+  <div id="notepad"></div>
+
+  <div id="input-row">
+    <span class="line-num" id="current-line-num">1</span>
+    <input id="expr-input" type="text" placeholder="Type an expression..." autocomplete="off" spellcheck="false" autofocus>
+  </div>
+
+  <div class="separator"></div>
+
+  <div id="btn-panel">
+    <div class="btn-row">
+      <button onclick="ins('sin(')">sin</button>
+      <button onclick="ins('cos(')">cos</button>
+      <button onclick="ins('tan(')">tan</button>
+      <button onclick="ins('asin(')">sin&#x207B;&#xB9;</button>
+      <button onclick="ins('acos(')">cos&#x207B;&#xB9;</button>
+      <button onclick="ins('atan(')">tan&#x207B;&#xB9;</button>
+    </div>
+    <div class="btn-row">
+      <button onclick="ins('log(')">log</button>
+      <button onclick="ins('ln(')">ln</button>
+      <button onclick="ins('log2(')">log&#x2082;</button>
+      <button onclick="ins('sqrt(')">&#x221A;</button>
+      <button onclick="ins('cbrt(')">&#x221B;</button>
+      <button onclick="ins('abs(')">|x|</button>
+    </div>
+    <div class="btn-row">
+      <button onclick="ins('^')">x&#x207F;</button>
+      <button onclick="ins('^2')">x&#xB2;</button>
+      <button onclick="ins('^3')">x&#xB3;</button>
+      <button onclick="ins('!')">n!</button>
+      <button onclick="ins('pi')">&#x03C0;</button>
+      <button onclick="ins('e')">e</button>
+    </div>
+    <div class="btn-row">
+      <button onclick="ins('(')">(</button>
+      <button onclick="ins(')')">)</button>
+      <button onclick="ins('%')">%</button>
+      <button onclick="ins('ans')" class="special">ANS</button>
+      <button onclick="clearInput()" class="danger">CE</button>
+      <button onclick="clearAll()" class="danger">CA</button>
+    </div>
+    <div class="btn-row">
+      <button onclick="ins('7')">7</button>
+      <button onclick="ins('8')">8</button>
+      <button onclick="ins('9')">9</button>
+      <button onclick="ins('/')">/</button>
+      <button onclick="backspace()">&#x232B;</button>
+    </div>
+    <div class="btn-row">
+      <button onclick="ins('4')">4</button>
+      <button onclick="ins('5')">5</button>
+      <button onclick="ins('6')">6</button>
+      <button onclick="ins('*')">&#xD7;</button>
+      <button onclick="ins('mod ')">mod</button>
+    </div>
+    <div class="btn-row">
+      <button onclick="ins('1')">1</button>
+      <button onclick="ins('2')">2</button>
+      <button onclick="ins('3')">3</button>
+      <button onclick="ins('-')">&#x2212;</button>
+      <button onclick="ins('E')">EXP</button>
+    </div>
+    <div class="btn-row">
+      <button onclick="ins('0')">0</button>
+      <button onclick="ins('.')">.</button>
+      <button onclick="ins(',')">,</button>
+      <button onclick="ins('+')">+</button>
+      <button onclick="evaluate()" class="accent">=</button>
+    </div>
+  </div>
+
+  <div id="statusbar">
+    <span id="status-left">Ready</span>
+    <span id="status-right"></span>
+  </div>
+</div>
+
+<script>
+// ── Themes ─────────────────────────────────────
+const THEMES = {
+  'solarized-light': {
+    name: 'Solarized Light',
+    swatchLeft: '#fdf6e3', swatchRight: '#268bd2',
+    vars: {
+      '--bg':'#fdf6e3','--surface':'#eee8d5','--surface2':'#e6dfcc',
+      '--border':'#d3cbb7','--text':'#475b62','--text-dim':'#93a1a1',
+      '--accent':'#268bd2','--accent-hover':'#1a6fa8','--accent-text':'#ffffff',
+      '--result':'#2a8c82','--error':'#dc322f','--line-num':'#b0a890',
+      '--btn-bg':'#eee8d5','--btn-hover':'#e6dfcc','--btn-active':'#ddd6c1',
+      '--btn-text':'#475b62',
+      '--scrollbar':'#d3cbb7','--scrollbar-thumb':'#b0a890',
+      '--shadow':'rgba(0,0,0,0.12)'
+    }
+  },
+  'paper': {
+    name: 'Paper',
+    swatchLeft: '#ffffff', swatchRight: '#3574d0',
+    vars: {
+      '--bg':'#ffffff','--surface':'#f5f5f5','--surface2':'#ececec',
+      '--border':'#dedede','--text':'#333333','--text-dim':'#999999',
+      '--accent':'#3574d0','--accent-hover':'#2a5da6','--accent-text':'#ffffff',
+      '--result':'#1e8e3e','--error':'#d93025','--line-num':'#c0c0c0',
+      '--btn-bg':'#f0f0f0','--btn-hover':'#e4e4e4','--btn-active':'#d8d8d8',
+      '--btn-text':'#333333',
+      '--scrollbar':'#e0e0e0','--scrollbar-thumb':'#c0c0c0',
+      '--shadow':'rgba(0,0,0,0.10)'
+    }
+  },
+  'rose': {
+    name: 'Rose',
+    swatchLeft: '#fef2f0', swatchRight: '#c94f6d',
+    vars: {
+      '--bg':'#fef2f0','--surface':'#f5e6e3','--surface2':'#edddd9',
+      '--border':'#e0ccc7','--text':'#5c3d3d','--text-dim':'#a08080',
+      '--accent':'#c94f6d','--accent-hover':'#a83d58','--accent-text':'#ffffff',
+      '--result':'#5a9e6f','--error':'#cc3333','--line-num':'#c4aaa4',
+      '--btn-bg':'#f5e6e3','--btn-hover':'#edddd9','--btn-active':'#e4d2cc',
+      '--btn-text':'#5c3d3d',
+      '--scrollbar':'#e0ccc7','--scrollbar-thumb':'#c4aaa4',
+      '--shadow':'rgba(80,30,30,0.10)'
+    }
+  },
+  'nord-light': {
+    name: 'Nord Frost',
+    swatchLeft: '#eceff4', swatchRight: '#5e81ac',
+    vars: {
+      '--bg':'#eceff4','--surface':'#e5e9f0','--surface2':'#dde1ea',
+      '--border':'#c8cdd8','--text':'#3b4252','--text-dim':'#7b88a0',
+      '--accent':'#5e81ac','--accent-hover':'#4c6e96','--accent-text':'#ffffff',
+      '--result':'#518c5a','--error':'#bf616a','--line-num':'#a0a8b8',
+      '--btn-bg':'#e5e9f0','--btn-hover':'#dde1ea','--btn-active':'#d0d6e2',
+      '--btn-text':'#3b4252',
+      '--scrollbar':'#c8cdd8','--scrollbar-thumb':'#a0a8b8',
+      '--shadow':'rgba(0,0,0,0.08)'
+    }
+  },
+  'midnight': {
+    name: 'Midnight',
+    swatchLeft: '#1e1e2e', swatchRight: '#7c8ff4',
+    vars: {
+      '--bg':'#1e1e2e','--surface':'#252536','--surface2':'#2a2a3d',
+      '--border':'#3a3a52','--text':'#e0e0e8','--text-dim':'#8888a0',
+      '--accent':'#7c8ff4','--accent-hover':'#95a4ff','--accent-text':'#1e1e2e',
+      '--result':'#6ee6a0','--error':'#f47c7c','--line-num':'#555570',
+      '--btn-bg':'#303048','--btn-hover':'#404060','--btn-active':'#505070',
+      '--btn-text':'#e0e0e8',
+      '--scrollbar':'#3a3a52','--scrollbar-thumb':'#555570',
+      '--shadow':'rgba(0,0,0,0.50)'
+    }
+  },
+  'dracula': {
+    name: 'Dracula',
+    swatchLeft: '#282a36', swatchRight: '#bd93f9',
+    vars: {
+      '--bg':'#282a36','--surface':'#2e303e','--surface2':'#343646',
+      '--border':'#44475a','--text':'#f8f8f2','--text-dim':'#6272a4',
+      '--accent':'#bd93f9','--accent-hover':'#caa4ff','--accent-text':'#282a36',
+      '--result':'#50fa7b','--error':'#ff5555','--line-num':'#555872',
+      '--btn-bg':'#343646','--btn-hover':'#3e4058','--btn-active':'#484a64',
+      '--btn-text':'#f8f8f2',
+      '--scrollbar':'#44475a','--scrollbar-thumb':'#6272a4',
+      '--shadow':'rgba(0,0,0,0.50)'
+    }
+  },
+  'monokai': {
+    name: 'Monokai',
+    swatchLeft: '#272822', swatchRight: '#f92672',
+    vars: {
+      '--bg':'#272822','--surface':'#2e2f28','--surface2':'#35362e',
+      '--border':'#49483e','--text':'#f8f8f2','--text-dim':'#75715e',
+      '--accent':'#f92672','--accent-hover':'#ff4490','--accent-text':'#ffffff',
+      '--result':'#a6e22e','--error':'#f92672','--line-num':'#575842',
+      '--btn-bg':'#35362e','--btn-hover':'#3e3f36','--btn-active':'#49483e',
+      '--btn-text':'#f8f8f2',
+      '--scrollbar':'#49483e','--scrollbar-thumb':'#75715e',
+      '--shadow':'rgba(0,0,0,0.50)'
+    }
+  },
+  'solarized-dark': {
+    name: 'Solarized Dark',
+    swatchLeft: '#002b36', swatchRight: '#2aa198',
+    vars: {
+      '--bg':'#002b36','--surface':'#073642','--surface2':'#0a3f4c',
+      '--border':'#1a5060','--text':'#eee8d5','--text-dim':'#657b83',
+      '--accent':'#2aa198','--accent-hover':'#35bdb3','--accent-text':'#002b36',
+      '--result':'#859900','--error':'#dc322f','--line-num':'#3e6068',
+      '--btn-bg':'#073642','--btn-hover':'#0a3f4c','--btn-active':'#0e4d5c',
+      '--btn-text':'#eee8d5',
+      '--scrollbar':'#1a5060','--scrollbar-thumb':'#3e6068',
+      '--shadow':'rgba(0,0,0,0.50)'
+    }
+  },
+};
+
+// ── State ──────────────────────────────────────
+const STORAGE_KEY = 'scicalc_history';
+const MODE_KEY    = 'scicalc_angle_mode';
+const THEME_KEY   = 'scicalc_theme';
+let history  = [];
+let ans      = 0;
+let useDeg   = true;
+let currentTheme = 'solarized-light';
+
+// ── DOM refs ───────────────────────────────────
+const notepad       = document.getElementById('notepad');
+const input         = document.getElementById('expr-input');
+const lineNumEl     = document.getElementById('current-line-num');
+const modeBtn       = document.getElementById('mode-toggle');
+const themeToggle   = document.getElementById('theme-toggle');
+const themePanel    = document.getElementById('theme-panel');
+const themeList     = document.getElementById('theme-list');
+const statusLeft    = document.getElementById('status-left');
+const statusRight   = document.getElementById('status-right');
+
+// ── Theme system ───────────────────────────────
+function applyTheme(id) {
+  const theme = THEMES[id];
+  if (!theme) return;
+  currentTheme = id;
+  const root = document.documentElement;
+  for (const [prop, val] of Object.entries(theme.vars)) {
+    root.style.setProperty(prop, val);
+  }
+  // Update active state in picker
+  document.querySelectorAll('.theme-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.theme === id);
+  });
+  try { localStorage.setItem(THEME_KEY, id); } catch(e) {}
+}
+
+function buildThemePicker() {
+  themeList.innerHTML = '';
+  for (const [id, theme] of Object.entries(THEMES)) {
+    const opt = document.createElement('div');
+    opt.className = 'theme-option' + (id === currentTheme ? ' active' : '');
+    opt.dataset.theme = id;
+    opt.innerHTML =
+      `<div class="theme-swatch">` +
+        `<div class="sw-left" style="background:${theme.swatchLeft}"></div>` +
+        `<div class="sw-right" style="background:${theme.swatchRight}"></div>` +
+      `</div>` +
+      `<span class="theme-label">${theme.name}</span>`;
+    opt.addEventListener('click', () => {
+      applyTheme(id);
+      themePanel.classList.remove('open');
+    });
+    themeList.appendChild(opt);
+  }
+}
+
+themeToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  themePanel.classList.toggle('open');
+});
+
+// Close theme panel when clicking elsewhere
+document.addEventListener('click', (e) => {
+  if (!themePanel.contains(e.target) && e.target !== themeToggle) {
+    themePanel.classList.remove('open');
+  }
+});
+
+// ── Persistence ────────────────────────────────
+function saveHistory() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  } catch(e) {}
+}
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      history = JSON.parse(raw);
+      if (history.length) {
+        const last = [...history].reverse().find(h => !h.isError);
+        if (last) ans = parseFloat(last.result);
+      }
+    }
+  } catch(e) { history = []; }
+}
+function saveMode() {
+  localStorage.setItem(MODE_KEY, useDeg ? 'DEG' : 'RAD');
+}
+function loadMode() {
+  const m = localStorage.getItem(MODE_KEY);
+  if (m === 'RAD') useDeg = false;
+  modeBtn.textContent = useDeg ? 'DEG' : 'RAD';
+}
+function loadTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved && THEMES[saved]) currentTheme = saved;
+}
+
+// ── Rendering ──────────────────────────────────
+function renderHistory() {
+  notepad.innerHTML = '';
+  history.forEach((h, i) => {
+    const exprDiv = document.createElement('div');
+    exprDiv.className = 'entry';
+    exprDiv.innerHTML =
+      `<span class="line-num">${i + 1}</span>` +
+      `<span class="expr">${escHtml(h.expr)}</span>`;
+    notepad.appendChild(exprDiv);
+
+    const resDiv = document.createElement('div');
+    resDiv.className = 'entry';
+    resDiv.innerHTML =
+      `<span class="line-num"></span>` +
+      `<span class="result-line${h.isError ? ' error' : ''}">${h.isError ? 'Error: ' : '= '}${escHtml(h.result)}</span>`;
+    notepad.appendChild(resDiv);
+  });
+
+  lineNumEl.textContent = history.length + 1;
+  updateStatus();
+  scrollToBottom();
+}
+
+function scrollToBottom() {
+  requestAnimationFrame(() => {
+    notepad.scrollTop = notepad.scrollHeight;
+  });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateStatus() {
+  statusLeft.textContent = `${history.length} calculation${history.length !== 1 ? 's' : ''}`;
+  statusRight.textContent = useDeg ? 'Angle: Degrees' : 'Angle: Radians';
+}
+
+// ── Factorial ──────────────────────────────────
+function factorial(n) {
+  if (n < 0) throw new Error('Factorial of negative number');
+  if (!Number.isInteger(n)) throw new Error('Factorial requires integer');
+  if (n > 170) return Infinity;
+  let r = 1;
+  for (let i = 2; i <= n; i++) r *= i;
+  return r;
+}
+
+// ── Expression evaluator ───────────────────────
+function evalExpr(raw) {
+  let expr = raw.trim();
+  if (!expr) throw new Error('Empty expression');
+
+  expr = expr
+    .replace(/\u00d7/g, '*')
+    .replace(/\u2212/g, '-')
+    .replace(/\u00f7/g, '/')
+    .replace(/\u03C0/g, 'pi')
+    .replace(/,/g, '')
+
+  expr = expr.replace(/\bpi\b/gi, `(${Math.PI})`);
+  expr = expr.replace(/\be\b/gi, `(${Math.E})`);
+  expr = expr.replace(/\bans\b/gi, `(${ans})`);
+
+  const toAngle = useDeg ? (v) => v * Math.PI / 180 : (v) => v;
+  const fromAngle = useDeg ? (v) => v * 180 / Math.PI : (v) => v;
+
+  const fnMap = {
+    'sin':  (x) => Math.sin(toAngle(x)),
+    'cos':  (x) => Math.cos(toAngle(x)),
+    'tan':  (x) => Math.tan(toAngle(x)),
+    'asin': (x) => fromAngle(Math.asin(x)),
+    'acos': (x) => fromAngle(Math.acos(x)),
+    'atan': (x) => fromAngle(Math.atan(x)),
+    'log':  (x) => Math.log10(x),
+    'log2': (x) => Math.log2(x),
+    'ln':   (x) => Math.log(x),
+    'sqrt': (x) => Math.sqrt(x),
+    'cbrt': (x) => Math.cbrt(x),
+    'abs':  (x) => Math.abs(x),
+    'exp':  (x) => Math.exp(x),
+    'ceil': (x) => Math.ceil(x),
+    'floor':(x) => Math.floor(x),
+    'round':(x) => Math.round(x),
+    'sign': (x) => Math.sign(x),
+  };
+
+  expr = expr.replace(/(\d+)!/g, 'factorial($1)');
+  let safety = 0;
+  while (expr.includes(')!') && safety++ < 20) {
+    expr = expr.replace(/(\([^()]*\))!/g, 'factorial$1');
+  }
+
+  expr = expr.replace(/\^/g, '**');
+  expr = expr.replace(/\bmod\b/gi, '%');
+  expr = expr.replace(/(\d)([a-zA-Z(])/g, '$1*$2');
+  expr = expr.replace(/(\))(\d)/g, '$1*$2');
+  expr = expr.replace(/(\))(\()/g, '$1*$2');
+  expr = expr.replace(/(\d+\.?\d*)%/g, '($1/100)');
+
+  const safePattern = /^[\d\s+\-*/().,%eE_a-zA-Z]+$/;
+  if (!safePattern.test(expr)) {
+    throw new Error('Invalid characters');
+  }
+
+  const scopeKeys = Object.keys(fnMap);
+  const scopeVals = Object.values(fnMap);
+  scopeKeys.push('factorial');
+  scopeVals.push(factorial);
+
+  const dangerous = /\b(window|document|global|eval|Function|import|require|fetch|XMLHttp|setTimeout|setInterval|constructor|prototype|__proto__)\b/i;
+  if (dangerous.test(expr)) {
+    throw new Error('Invalid expression');
+  }
+
+  try {
+    const fn = new Function(...scopeKeys, `"use strict"; return (${expr});`);
+    const result = fn(...scopeVals);
+
+    if (typeof result !== 'number' || isNaN(result)) {
+      if (result === Infinity || result === -Infinity) return result;
+      throw new Error('Not a number');
+    }
+    return result;
+  } catch (e) {
+    throw new Error(e.message || 'Syntax error');
+  }
+}
+
+// ── Format result ──────────────────────────────
+function formatResult(n) {
+  if (n === Infinity) return 'Infinity';
+  if (n === -Infinity) return '-Infinity';
+  if (Number.isInteger(n) && Math.abs(n) < 1e15) return n.toString();
+  if (Math.abs(n) >= 1e15 || (Math.abs(n) < 1e-6 && n !== 0)) {
+    return n.toExponential(10).replace(/\.?0+e/, 'e');
+  }
+  let s = n.toPrecision(12);
+  if (s.includes('.')) {
+    s = s.replace(/0+$/, '').replace(/\.$/, '');
+  }
+  return s;
+}
+
+// ── Core actions ───────────────────────────────
+function evaluate() {
+  const raw = input.value.trim();
+  if (!raw) return;
+
+  let result, isError = false;
+  try {
+    const val = evalExpr(raw);
+    result = formatResult(val);
+    ans = val;
+  } catch(e) {
+    result = e.message;
+    isError = true;
+  }
+
+  history.push({ expr: raw, result, isError });
+  saveHistory();
+  renderHistory();
+  input.value = '';
+  input.focus();
+}
+
+function ins(text) {
+  const start = input.selectionStart;
+  const end   = input.selectionEnd;
+  const val   = input.value;
+  input.value = val.substring(0, start) + text + val.substring(end);
+  const cursor = start + text.length;
+  input.setSelectionRange(cursor, cursor);
+  input.focus();
+}
+
+function backspace() {
+  const start = input.selectionStart;
+  const end   = input.selectionEnd;
+  const val   = input.value;
+  if (start !== end) {
+    input.value = val.substring(0, start) + val.substring(end);
+    input.setSelectionRange(start, start);
+  } else if (start > 0) {
+    input.value = val.substring(0, start - 1) + val.substring(start);
+    input.setSelectionRange(start - 1, start - 1);
+  }
+  input.focus();
+}
+
+function clearInput() {
+  input.value = '';
+  input.focus();
+}
+
+function clearAll() {
+  if (history.length === 0) return;
+  if (confirm('Clear all calculation history?')) {
+    history = [];
+    ans = 0;
+    saveHistory();
+    renderHistory();
+    input.value = '';
+    input.focus();
+  }
+}
+
+// ── Toggle DEG / RAD ───────────────────────────
+modeBtn.addEventListener('click', () => {
+  useDeg = !useDeg;
+  modeBtn.textContent = useDeg ? 'DEG' : 'RAD';
+  saveMode();
+  updateStatus();
+});
+
+// ── Keyboard handling ──────────────────────────
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    evaluate();
+  }
+  if (e.key === 'ArrowUp' && history.length && input.value === '') {
+    e.preventDefault();
+    input.value = history[history.length - 1].expr;
+    setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
+  }
+});
+
+notepad.addEventListener('click', () => input.focus());
+
+// ── Init ───────────────────────────────────────
+loadTheme();
+buildThemePicker();
+applyTheme(currentTheme);
+loadMode();
+loadHistory();
+renderHistory();
+input.focus();
+
+// ── Register service worker ────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+
+</body>
+</html>
