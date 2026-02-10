@@ -412,7 +412,7 @@
       <button onclick="ins('.')">.</button>
       <button onclick="ins(',')">,</button>
       <button onclick="ins('+')">+</button>
-      <button onclick="evaluate()" class="accent">=</button>
+      <button onclick="calc()" class="accent">=</button>
     </div>
   </div>
 
@@ -790,7 +790,7 @@ function syncDisplay() {
 }
 
 // ── Core actions ───────────────────────────────
-function evaluate() {
+function calc() {
   const raw = currentExpr.trim();
   if (!raw) return;
 
@@ -852,7 +852,7 @@ modeBtn.addEventListener('click', () => {
 input.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    evaluate();
+    calc();
   }
   if (e.key === 'ArrowUp' && history.length && currentExpr === '') {
     e.preventDefault();
