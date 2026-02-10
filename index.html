@@ -174,6 +174,9 @@
     background: var(--bg);
     scroll-behavior: smooth;
     transition: background 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
   }
   #notepad::-webkit-scrollbar { width: 8px; }
   #notepad::-webkit-scrollbar-track { background: var(--bg); }
@@ -210,23 +213,6 @@
     word-break: break-all;
   }
   .entry .result-line.error {
-    color: var(--error);
-  }
-
-  /* ── Last result display ────────────── */
-  #last-result {
-    padding: 6px 16px 6px 60px;
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--result);
-    min-height: 0;
-    flex-shrink: 0;
-    transition: color 0.3s;
-  }
-  #last-result:empty {
-    display: none;
-  }
-  #last-result.error {
     color: var(--error);
   }
 
@@ -362,8 +348,6 @@
   </div>
 
   <div id="notepad"></div>
-
-  <div id="last-result"></div>
 
   <div id="input-row">
     <span class="line-num" id="current-line-num">1</span>
@@ -576,7 +560,6 @@ const modeBtn       = document.getElementById('mode-toggle');
 const themeToggle   = document.getElementById('theme-toggle');
 const themePanel    = document.getElementById('theme-panel');
 const themeList     = document.getElementById('theme-list');
-const lastResultEl  = document.getElementById('last-result');
 const statusLeft    = document.getElementById('status-left');
 const statusRight   = document.getElementById('status-right');
 
@@ -679,17 +662,6 @@ function renderHistory() {
   });
 
   lineNumEl.textContent = history.length + 1;
-
-  // Show last result just above input
-  if (history.length > 0) {
-    const last = history[history.length - 1];
-    lastResultEl.textContent = (last.isError ? 'Error: ' : '= ') + last.result;
-    lastResultEl.className = last.isError ? 'error' : '';
-  } else {
-    lastResultEl.textContent = '';
-    lastResultEl.className = '';
-  }
-
   updateStatus();
   scrollToBottom();
 }
