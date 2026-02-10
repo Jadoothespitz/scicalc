@@ -1,5 +1,6 @@
 # SciCalc Notepad
 
+Default iPhone calculator sucks. Other calculator apps available on App Store were full of ads, and I didn't like them all. So I made my own calculator I've dreamed with Claude Code.
 A web-based scientific calculator with a notepad-style interface. Calculations proceed line by line, and you can scroll up to see previous results.
 
 **Try it live:** [https://jadoothespitz.github.io/scicalc/](https://jadoothespitz.github.io/scicalc/)
