@@ -388,7 +388,7 @@
     <div class="btn-row">
       <button onclick="ins('log(')">log</button>
       <button onclick="ins('ln(')">ln</button>
-      <button onclick="ins('log2(')">log&#x2082;</button>
+      <button onclick="ins('log\u2082(')">log&#x2082;</button>
       <button onclick="ins('sqrt(')">&#x221A;</button>
       <button onclick="ins('cbrt(')">&#x221B;</button>
       <button onclick="ins('abs(')">|x|</button>
@@ -730,7 +730,7 @@ function evalExpr(raw) {
   expr = expr.replace(/\bpi\b/gi, `(${Math.PI})`);
   expr = expr.replace(/\be\b/gi, `(${Math.E})`);
   expr = expr.replace(/\bans\b/gi, `(${ans})`);
-  expr = expr.replace(/\blog2\b/gi, 'logbase2');
+  expr = expr.replace(/\blog[2\u2082]/gi, 'logtwo');
 
   const toAngle = useDeg ? (v) => v * Math.PI / 180 : (v) => v;
   const fromAngle = useDeg ? (v) => v * 180 / Math.PI : (v) => v;
@@ -743,7 +743,7 @@ function evalExpr(raw) {
     'acos': (x) => fromAngle(Math.acos(x)),
     'atan': (x) => fromAngle(Math.atan(x)),
     'log':  (x) => Math.log10(x),
-    'logbase2': (x) => Math.log2(x),
+    'logtwo': (x) => Math.log2(x),
     'ln':   (x) => Math.log(x),
     'sqrt': (x) => Math.sqrt(x),
     'cbrt': (x) => Math.cbrt(x),
