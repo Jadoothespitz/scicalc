@@ -233,8 +233,16 @@
     user-select: none;
     line-height: 32px;
   }
-  #expr-input {
+  #input-wrapper {
     flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+  #expr-input {
+    flex: 0 1 auto;
+    width: 0;
+    min-width: 60px;
     background: transparent;
     border: none;
     outline: none;
@@ -243,6 +251,16 @@
     font-size: 18px;
     line-height: 32px;
     caret-color: var(--accent);
+  }
+  #ghost-parens {
+    color: var(--text-dim);
+    opacity: 0.35;
+    font-family: inherit;
+    font-size: 18px;
+    line-height: 32px;
+    pointer-events: none;
+    user-select: none;
+    white-space: pre;
   }
   #expr-input::placeholder {
     color: var(--text-dim);
@@ -351,7 +369,9 @@
 
   <div id="input-row">
     <span class="line-num" id="current-line-num">1</span>
-    <input id="expr-input" type="text" inputmode="none" placeholder="Type an expression..." autocomplete="off" spellcheck="false" autofocus>
+    <div id="input-wrapper">
+      <input id="expr-input" type="text" inputmode="none" placeholder="Type an expression..." autocomplete="off" spellcheck="false" autofocus><span id="ghost-parens"></span>
+    </div>
   </div>
 
   <div class="separator"></div>
@@ -696,6 +716,10 @@ function evalExpr(raw) {
   let expr = raw.trim();
   if (!expr) throw new Error('Empty expression');
 
+  // Auto-close unclosed parentheses
+  const missing = countUnclosedParens(expr);
+  if (missing > 0) expr += ')'.repeat(missing);
+
   expr = expr
     .replace(/\u00d7/g, '*')
     .replace(/\u2212/g, '-')
@@ -706,6 +730,7 @@ function evalExpr(raw) {
   expr = expr.replace(/\bpi\b/gi, `(${Math.PI})`);
   expr = expr.replace(/\be\b/gi, `(${Math.E})`);
   expr = expr.replace(/\bans\b/gi, `(${ans})`);
+  expr = expr.replace(/\blog2\b/gi, 'logbase2');
 
   const toAngle = useDeg ? (v) => v * Math.PI / 180 : (v) => v;
   const fromAngle = useDeg ? (v) => v * 180 / Math.PI : (v) => v;
@@ -718,7 +743,7 @@ function evalExpr(raw) {
     'acos': (x) => fromAngle(Math.acos(x)),
     'atan': (x) => fromAngle(Math.atan(x)),
     'log':  (x) => Math.log10(x),
-    'log2': (x) => Math.log2(x),
+    'logbase2': (x) => Math.log2(x),
     'ln':   (x) => Math.log(x),
     'sqrt': (x) => Math.sqrt(x),
     'cbrt': (x) => Math.cbrt(x),
@@ -788,8 +813,23 @@ function formatResult(n) {
 }
 
 // ── Sync display ───────────────────────────────
+function countUnclosedParens(str) {
+  let open = 0;
+  for (const ch of str) {
+    if (ch === '(') open++;
+    else if (ch === ')') open = Math.max(0, open - 1);
+  }
+  return open;
+}
+
 function syncDisplay() {
   input.value = currentExpr;
+  const ghost = document.getElementById('ghost-parens');
+  const missing = countUnclosedParens(currentExpr);
+  ghost.textContent = missing > 0 ? ')'.repeat(missing) : '';
+  // auto-size input to content
+  input.style.width = '0';
+  input.style.width = Math.max(60, input.scrollWidth) + 'px';
 }
 
 // ── Core actions ───────────────────────────────
