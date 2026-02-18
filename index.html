@@ -205,6 +205,12 @@
     color: var(--text);
     font-size: 18px;
     word-break: break-all;
+    cursor: pointer;
+  }
+  .entry .expr:hover {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
   .entry .result-line {
     color: var(--result);
@@ -240,8 +246,7 @@
     min-width: 0;
   }
   #expr-input {
-    flex: 0 1 auto;
-    width: 0;
+    flex: 1;
     min-width: 60px;
     background: transparent;
     border: none;
@@ -670,7 +675,12 @@ function renderHistory() {
     exprDiv.className = 'entry';
     exprDiv.innerHTML =
       `<span class="line-num">${i + 1}</span>` +
-      `<span class="expr">${escHtml(h.expr)}</span>`;
+      `<span class="expr" title="Click to edit">${escHtml(formatExprDisplay(h.expr))}</span>`;
+    exprDiv.querySelector('.expr').addEventListener('click', () => {
+      currentExpr = h.expr;
+      syncDisplay();
+      input.focus();
+    });
     notepad.appendChild(exprDiv);
 
     const resDiv = document.createElement('div');
@@ -694,6 +704,14 @@ function scrollToBottom() {
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatExprDisplay(expr) {
+  // Add thousand commas to bare numbers (>= 4 digits) in the expression
+  return expr.replace(/\d+\.?\d*/g, (m) => {
+    if (m.length < 4) return m;
+    return addCommas(m);
+  });
 }
 
 function updateStatus() {
@@ -798,10 +816,19 @@ function evalExpr(raw) {
 }
 
 // ── Format result ──────────────────────────────
+function addCommas(s) {
+  if (s.includes('e')) return s; // leave scientific notation alone
+  const neg = s.startsWith('-');
+  const abs = neg ? s.slice(1) : s;
+  const [intPart, decPart] = abs.split('.');
+  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return (neg ? '-' : '') + grouped + (decPart !== undefined ? '.' + decPart : '');
+}
+
 function formatResult(n) {
   if (n === Infinity) return 'Infinity';
   if (n === -Infinity) return '-Infinity';
-  if (Number.isInteger(n) && Math.abs(n) < 1e15) return n.toString();
+  if (Number.isInteger(n) && Math.abs(n) < 1e15) return addCommas(n.toString());
   if (Math.abs(n) >= 1e15 || (Math.abs(n) < 1e-6 && n !== 0)) {
     return n.toExponential(10).replace(/\.?0+e/, 'e');
   }
@@ -809,7 +836,7 @@ function formatResult(n) {
   if (s.includes('.')) {
     s = s.replace(/0+$/, '').replace(/\.$/, '');
   }
-  return s;
+  return addCommas(s);
 }
 
 // ── Sync display ───────────────────────────────
@@ -827,9 +854,16 @@ function syncDisplay() {
   const ghost = document.getElementById('ghost-parens');
   const missing = countUnclosedParens(currentExpr);
   ghost.textContent = missing > 0 ? ')'.repeat(missing) : '';
-  // auto-size input to content
-  input.style.width = '0';
-  input.style.width = Math.max(60, input.scrollWidth) + 'px';
+  if (currentExpr === '') {
+    // Empty: fill the row so placeholder is fully visible
+    input.style.flex = '1';
+    input.style.width = '';
+  } else {
+    // Has content: shrink to text width so ghost parens appear right after
+    input.style.flex = '0 1 auto';
+    input.style.width = '0';
+    input.style.width = Math.max(60, input.scrollWidth) + 'px';
+  }
 }
 
 // ── Core actions ───────────────────────────────
