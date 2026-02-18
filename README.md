@@ -8,12 +8,15 @@ A web-based scientific calculator with a notepad-style interface. Calculations p
 ## Features
 
 - **Notepad-style layout** -- each calculation is a new line, with full scrollable history
-- **Scientific functions** -- sin, cos, tan, inverse trig, log, ln, sqrt, cbrt, factorial, powers, and more
+- **Scientific functions** -- sin, cos, tan, inverse trig, log, ln, log₂, sqrt, cbrt, factorial, powers, and more
 - **DEG / RAD toggle** -- switch between degrees and radians for trig functions
 - **8 color themes** -- Solarized Light, Paper, Rose, Nord Frost, Midnight, Dracula, Monokai, Solarized Dark
 - **Persistent history** -- calculations and theme choice are saved in localStorage, so nothing is lost on refresh
 - **PWA** -- installable on phones and works offline
 - **ANS key** -- reuse the result of the last calculation
+- **Auto-closing parentheses** -- unclosed parentheses are shown as a ghost `)` and automatically closed on evaluation
+- **Thousand-comma formatting** -- numbers are formatted with commas as you type and in results (e.g. 2000000 → 2,000,000)
+- **Click to re-edit** -- click any past expression to copy it back into the input line
 
 ## Built with
 
