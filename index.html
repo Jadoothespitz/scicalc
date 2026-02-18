@@ -850,16 +850,35 @@ function countUnclosedParens(str) {
 }
 
 function syncDisplay() {
-  input.value = currentExpr;
   const ghost = document.getElementById('ghost-parens');
   const missing = countUnclosedParens(currentExpr);
   ghost.textContent = missing > 0 ? ')'.repeat(missing) : '';
+
+  const formatted = formatExprDisplay(currentExpr);
+
+  if (input.value !== formatted) {
+    // Map cursor position: count non-comma chars before cursor in old value,
+    // then find that same offset in the new formatted string.
+    const oldVal = input.value;
+    const selStart = input.selectionStart ?? oldVal.length;
+    let rawPos = 0;
+    for (let i = 0; i < selStart; i++) {
+      if (oldVal[i] !== ',') rawPos++;
+    }
+    let newPos = formatted.length;
+    let seen = 0;
+    for (let i = 0; i < formatted.length; i++) {
+      if (seen === rawPos) { newPos = i; break; }
+      if (formatted[i] !== ',') seen++;
+    }
+    input.value = formatted;
+    input.setSelectionRange(newPos, newPos);
+  }
+
   if (currentExpr === '') {
-    // Empty: fill the row so placeholder is fully visible
     input.style.flex = '1';
     input.style.width = '';
   } else {
-    // Has content: shrink to text width so ghost parens appear right after
     input.style.flex = '0 1 auto';
     input.style.width = '0';
     input.style.width = Math.max(60, input.scrollWidth) + 'px';
@@ -936,10 +955,24 @@ input.addEventListener('keydown', (e) => {
     currentExpr = history[history.length - 1].expr;
     syncDisplay();
   }
+  // Backspace over a cosmetic comma: skip it and delete the real digit before it
+  if (e.key === 'Backspace' && !e.ctrlKey && !e.metaKey) {
+    const pos = input.selectionStart;
+    const val = input.value;
+    if (input.selectionStart === input.selectionEnd && pos > 0 && val[pos - 1] === ',') {
+      e.preventDefault();
+      const newVal = val.slice(0, pos - 2) + val.slice(pos);
+      currentExpr = newVal.replace(/,/g, '');
+      input.value = newVal;
+      input.setSelectionRange(pos - 2, pos - 2);
+      syncDisplay();
+    }
+  }
 });
 // Sync variable if user types directly (desktop)
 input.addEventListener('input', () => {
-  currentExpr = input.value;
+  currentExpr = input.value.replace(/,/g, '');
+  syncDisplay();
 });
 
 notepad.addEventListener('click', () => input.focus());
