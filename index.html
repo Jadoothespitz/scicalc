@@ -221,6 +221,25 @@
   .entry .result-line.error {
     color: var(--error);
   }
+  .entry .delete-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--error);
+    font-size: 16px;
+    cursor: pointer;
+    opacity: 0;
+    padding: 0 4px;
+    line-height: 30px;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+  .entry:hover .delete-btn {
+    opacity: 0.5;
+  }
+  .entry .delete-btn:hover {
+    opacity: 1;
+  }
 
   /* ── Active input line ───────────────── */
   #input-row {
@@ -675,11 +694,17 @@ function renderHistory() {
     exprDiv.className = 'entry';
     exprDiv.innerHTML =
       `<span class="line-num">${i + 1}</span>` +
-      `<span class="expr" title="Click to edit">${escHtml(formatExprDisplay(h.expr))}</span>`;
+      `<span class="expr" title="Click to edit">${escHtml(formatExprDisplay(h.expr))}</span>` +
+      `<button class="delete-btn" title="Delete entry">×</button>`;
     exprDiv.querySelector('.expr').addEventListener('click', () => {
       currentExpr = h.expr;
       syncDisplay();
       input.focus();
+    });
+    exprDiv.querySelector('.delete-btn').addEventListener('click', () => {
+      history.splice(i, 1);
+      saveHistory();
+      renderHistory();
     });
     notepad.appendChild(exprDiv);
 
