@@ -176,7 +176,17 @@
     transition: background 0.3s;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    min-height: 0;
+  }
+  /* Inner wrapper: bottom-align when history is short without justify-content on
+     the scroll box (flex-end breaks overflow / scrolling upward in some browsers). */
+  #notepad-inner {
+    margin-top: auto;
+    flex-shrink: 0;
+    width: 100%;
+  }
+  #notepad .entry {
+    flex-shrink: 0;
   }
   #notepad::-webkit-scrollbar { width: 8px; }
   #notepad::-webkit-scrollbar-track { background: var(--bg); }
@@ -389,7 +399,7 @@
     <button class="titlebar-btn" id="mode-toggle" title="Toggle angle mode">DEG</button>
   </div>
 
-  <div id="notepad"></div>
+  <div id="notepad"><div id="notepad-inner"></div></div>
 
   <div id="input-row">
     <span class="line-num" id="current-line-num">1</span>
@@ -598,6 +608,7 @@ let currentExpr  = '';  // source of truth for the expression
 
 // ── DOM refs ───────────────────────────────────
 const notepad       = document.getElementById('notepad');
+const notepadInner  = document.getElementById('notepad-inner');
 const input         = document.getElementById('expr-input');
 const lineNumEl     = document.getElementById('current-line-num');
 const modeBtn       = document.getElementById('mode-toggle');
@@ -688,7 +699,7 @@ function loadTheme() {
 
 // ── Rendering ──────────────────────────────────
 function renderHistory() {
-  notepad.innerHTML = '';
+  notepadInner.innerHTML = '';
   history.forEach((h, i) => {
     const exprDiv = document.createElement('div');
     exprDiv.className = 'entry';
@@ -706,14 +717,14 @@ function renderHistory() {
       saveHistory();
       renderHistory();
     });
-    notepad.appendChild(exprDiv);
+    notepadInner.appendChild(exprDiv);
 
     const resDiv = document.createElement('div');
     resDiv.className = 'entry';
     resDiv.innerHTML =
       `<span class="line-num"></span>` +
       `<span class="result-line${h.isError ? ' error' : ''}">${h.isError ? 'Error: ' : '= '}${escHtml(h.result)}</span>`;
-    notepad.appendChild(resDiv);
+    notepadInner.appendChild(resDiv);
   });
 
   lineNumEl.textContent = history.length + 1;
@@ -826,6 +837,15 @@ function evalExpr(raw) {
     throw new Error('Invalid expression');
   }
 
+  if (/(\*\*|[+\-*/%])\s*$/.test(expr.trimEnd())) {
+    throw new Error('Incomplete expression (ends with an operator)');
+  }
+
+  // e.g. auto-closed "(4+" → "(4+)" leaves "+" before ")"; same for "-", "*", "/", "%"
+  if (/[+*/%]\s*\)|-\s*\)/.test(expr)) {
+    throw new Error('Incomplete expression (missing value before ")")');
+  }
+
   try {
     const fn = new Function(...scopeKeys, `"use strict"; return (${expr});`);
     const result = fn(...scopeVals);
@@ -836,7 +856,11 @@ function evalExpr(raw) {
     }
     return result;
   } catch (e) {
-    throw new Error(e.message || 'Syntax error');
+    const msg = e.message || 'Syntax error';
+    if (/unexpected token|unexpected end|missing \)|expected|invalid left-hand/i.test(msg)) {
+      throw new Error('Invalid or incomplete expression');
+    }
+    throw new Error(msg);
   }
 }
 
