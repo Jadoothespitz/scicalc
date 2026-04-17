@@ -708,7 +708,7 @@ function renderHistory() {
       `<span class="expr" title="Click to edit">${escHtml(formatExprDisplay(h.expr))}</span>` +
       `<button class="delete-btn" title="Delete entry">×</button>`;
     exprDiv.querySelector('.expr').addEventListener('click', () => {
-      currentExpr = h.expr;
+      currentExpr = currentExpr + h.expr;
       syncDisplay();
       input.focus();
     });
